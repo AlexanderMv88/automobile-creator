@@ -5,11 +5,14 @@ import org.junit.jupiter.api.Test;
 import org.mockserver.client.MockServerClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.containers.MockServerContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingException;
@@ -49,6 +52,9 @@ public class AcceptanceTest {
         registry.add("engine.service.host", () -> String.format(engineHost));
     }
 
+    @Autowired
+    private WebTestClient webClient;
+
 
     @Test
     public void shouldCreateAllPartsAndBuildAutomobile(){
@@ -68,8 +74,19 @@ public class AcceptanceTest {
                             .withHeader("Content-type", "application/json").withHeader("charset", "utf-8")
                     );
 
-            System.out.println("AAA");
-            assertThat("AAA").isEqualTo("BBB");
+            Parts parts = new Parts(engine);
+            CreationResult responseBody = webClient.post()
+                    .uri("/api/v1/build")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(parts)
+                    .exchange()
+                    .expectStatus().isOk()
+                    .expectBody(CreationResult.class)
+                    .returnResult()
+                    .getResponseBody();
+
+            assertThat(responseBody).isEqualTo(new CreationResult(engineInfo));
+
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
