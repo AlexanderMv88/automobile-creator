@@ -1,4 +1,4 @@
-package org.automobilecreator;
+package org.automobilecreator.dto;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 

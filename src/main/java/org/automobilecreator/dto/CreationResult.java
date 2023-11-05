@@ -1,4 +1,4 @@
-package org.automobilecreator;
+package org.automobilecreator.dto;
 
 public record CreationResult(CarEngineInfo engineInfo) {
 }
