@@ -18,11 +18,26 @@ public class WebClientConfig {
     @Value("${engine.service.host}")
     private String engineServiceHost;
 
+    @Value("${body.service.port}")
+    private String bodyServicePort;
+
+    @Value("${body.service.host}")
+    private String bodyServiceHost;
+
     Logger log = LoggerFactory.getLogger(WebClientConfig.class);
 
     @Bean
     public WebClient engineClient(WebClient.Builder webClientBuilder){
         return webClientBuilder.baseUrl("http://" + engineServiceHost + ":" + engineServicePort)
+                .filters(exchangeFilterFunctions -> {
+                    exchangeFilterFunctions.add(logRequest());
+                })
+                .build();
+    }
+
+    @Bean
+    public WebClient bodyClient(WebClient.Builder webClientBuilder){
+        return webClientBuilder.baseUrl("http://" + bodyServiceHost + ":" + bodyServicePort)
                 .filters(exchangeFilterFunctions -> {
                     exchangeFilterFunctions.add(logRequest());
                 })

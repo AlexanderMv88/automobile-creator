@@ -2,3 +2,7 @@ engine:
   service:
     port: 8088
     host: localhost
+body:
+  service:
+    port: 8089
+    host: localhost

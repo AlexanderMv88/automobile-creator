@@ -1,4 +1,4 @@
 package org.automobilecreator.dto;
 
-public record CreationResult(CarEngineInfo engineInfo) {
+public record CreationResult(CarEngineInfo engineInfo, CarBodyInfo carBodyInfo) {
 }

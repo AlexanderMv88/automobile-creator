@@ -1,9 +1,6 @@
 package org.automobilecreator.controller;
 
-import org.automobilecreator.dto.CarEngine;
-import org.automobilecreator.dto.CarEngineInfo;
-import org.automobilecreator.dto.CreationResult;
-import org.automobilecreator.dto.Parts;
+import org.automobilecreator.dto.*;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,15 +17,17 @@ import java.time.Duration;
 @RequestMapping("/api/v1")
 public class MyController {
 
-    public MyController(WebClient engineClient) {
+    public MyController(WebClient engineClient, WebClient bodyClient) {
         this.engineClient = engineClient;
+        this.bodyClient = bodyClient;
     }
 
     private final WebClient engineClient;
+    private final WebClient bodyClient;
     @PostMapping("/build")
     public Mono<CreationResult> build(@RequestBody Parts parts) {
-        //TODO: + ходить в другой сервис за кузовом
-        //TODO: реализовать походы за двигателем и кузовом с помощью concurrency (двигатель и кузов это Part)
+        //TODO: реализовать походы за двигателем и кузовом одновременно (двигатель и кузов) (OK)
+        //TODO: реализовать походы за всеми колесами сразу
         //TODO: + ходить в другой сервис за колесами (Part)
         CarEngine engine = parts.engine();
         Assert.notNull(engine, "Двигатель null!!!");
@@ -41,10 +40,19 @@ public class MyController {
                 .bodyToMono(CarEngineInfo.class)
                 .timeout(Duration.ofMillis(1000));
 
-        return carEngineInfoMono.map(carEngineInfo -> {
-            System.out.println("carEngineInfo = " + carEngineInfo);
-            return new CreationResult(carEngineInfo);
-        });
+
+        CarBody body = parts.body();
+        Assert.notNull(body, "Кузов null!!!");
+        Mono<CarBodyInfo> carBodyInfoMono = bodyClient.post()
+                .uri("/api/v1/create")
+                .body(Mono.just(body), CarBody.class)
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(CarBodyInfo.class)
+                .timeout(Duration.ofMillis(1000));
+
+        Mono<CreationResult> creationResultMono = Mono.zip(carEngineInfoMono, carBodyInfoMono, CreationResult::new);
+        return creationResultMono;
     }
 
 }
