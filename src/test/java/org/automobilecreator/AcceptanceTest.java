@@ -5,6 +5,7 @@ import org.automobilecreator.dto.*;
 import org.junit.Rule;
 import org.junit.jupiter.api.Test;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.model.Delay;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingExcept
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockserver.model.HttpRequest.request;
@@ -45,6 +47,8 @@ public class AcceptanceTest {
     public static MockServerContainer mockEngineService = new MockServerContainer(MOCKSERVER_IMAGE);
     @Rule
     public static MockServerContainer mockBodyService = new MockServerContainer(MOCKSERVER_IMAGE);
+    @Rule
+    public static MockServerContainer mockWheelService = new MockServerContainer(MOCKSERVER_IMAGE);
 
     @DynamicPropertySource
     static void mockEngineServiceProperties(DynamicPropertyRegistry registry) {
@@ -54,6 +58,11 @@ public class AcceptanceTest {
     @DynamicPropertySource
     static void mockBodyServiceProperties(DynamicPropertyRegistry registry) {
         buildMockServiceProperties(registry, "body", mockBodyService);
+    }
+
+    @DynamicPropertySource
+    static void mockWheelServiceProperties(DynamicPropertyRegistry registry) {
+        buildMockServiceProperties(registry, "wheel", mockWheelService);
     }
 
     @Autowired
@@ -66,22 +75,30 @@ public class AcceptanceTest {
     public void shouldCreateAllPartsAndBuildAutomobile() throws com.fasterxml.jackson.core.JsonProcessingException {
         try {
             //TODO: правильно остановить
-            MockServerClient mockEngineServerClient = new MockServerClient(mockEngineService.getHost(), mockEngineService.getServerPort());
-            MockServerClient mockBodyServerClient = new MockServerClient(mockBodyService.getHost(), mockBodyService.getServerPort());
             //given
+            //Подготовка мока сервиса двигателя
             CarEngine engine = new CarEngine("EngineName",
                     new BigDecimal("5.2"),
                     false);
             //TODO: Сделать универсальную обертку
             CarEngineInfo engineInfo = new CarEngineInfo(engine, 100);
-
+            MockServerClient mockEngineServerClient = new MockServerClient(mockEngineService.getHost(), mockEngineService.getServerPort());
             prepareEngineMockServer(mockEngineServerClient, engine, engineInfo);
 
+            //Подготовка мока сервиса кузова
             CarBody body = new CarBody("Универсал");
             CarBodyInfo bodyInfo = new CarBodyInfo(body, 100);
+            MockServerClient mockBodyServerClient = new MockServerClient(mockBodyService.getHost(), mockBodyService.getServerPort());
             prepareBodyMockServer(mockBodyServerClient, body, bodyInfo);
 
-            Parts parts = new Parts(engine, body);
+            //Подготовка мока сервиса колеса
+            Integer d = 20;
+            CarWheel wheel = new CarWheel(d);
+            CarWheelInfo wheelInfo = new CarWheelInfo(wheel, 100);
+            MockServerClient mockWheelServerClient = new MockServerClient(mockWheelService.getHost(), mockWheelService.getServerPort());
+            prepareWheelMockServer(mockWheelServerClient, wheel, wheelInfo);
+
+            Parts parts = new Parts(engine, body, wheel);
 
             //when
             CreationResult responseBody = webClient.post()
@@ -95,15 +112,12 @@ public class AcceptanceTest {
                     .returnResult()
                     .getResponseBody();
 
-            assertThat(responseBody).isEqualTo(new CreationResult(engineInfo, bodyInfo));
+            assertThat(responseBody).isEqualTo(new CreationResult(engineInfo, bodyInfo, wheelInfo));
 
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
     }
-
-
-
 
     private static void buildMockServiceProperties(DynamicPropertyRegistry registry, String serviceName, MockServerContainer container) {
         container.start();
@@ -117,30 +131,35 @@ public class AcceptanceTest {
     private void prepareEngineMockServer(MockServerClient mockServerClient, CarEngine engine, CarEngineInfo engineInfo) throws JsonProcessingException, com.fasterxml.jackson.core.JsonProcessingException {
         String engineJsonString = objectMapper.writeValueAsString(engine);
         String engineJsonResponseString = objectMapper.writeValueAsString(engineInfo);
-        mockServerClient
-                .when(request()
-                        .withPath("/api/v1/create")
-                        .withMethod("post")
-                        .withBody(engineJsonString)
-                        .withContentType(org.mockserver.model.MediaType.APPLICATION_JSON)
-                )
-                .respond(response().withBody(engineJsonResponseString)
-                        .withHeader("Content-type", "application/json").withHeader("charset", "utf-8")
-                );
+        prepareMockServer(mockServerClient, engineJsonString, engineJsonResponseString);
     }
 
     private void prepareBodyMockServer(MockServerClient mockServerClient, CarBody body, CarBodyInfo bodyInfo) throws JsonProcessingException, com.fasterxml.jackson.core.JsonProcessingException {
         String bodyJsonString = objectMapper.writeValueAsString(body);
         String bodyJsonResponseString = objectMapper.writeValueAsString(bodyInfo);
+        prepareMockServer(mockServerClient, bodyJsonString, bodyJsonResponseString);
+    }
+
+    private void prepareWheelMockServer(MockServerClient mockServerClient, CarWheel wheel, CarWheelInfo wheelInfo) throws JsonProcessingException, com.fasterxml.jackson.core.JsonProcessingException {
+        String wheelJsonString = objectMapper.writeValueAsString(wheel);
+        String wheelJsonResponseString = objectMapper.writeValueAsString(wheelInfo);
+        prepareMockServer(mockServerClient,wheelJsonString,wheelJsonResponseString);
+    }
+
+
+    private void prepareMockServer(MockServerClient mockServerClient, String reqBodyJsonString, String respBodyJsonString) {
         mockServerClient
                 .when(request()
                         .withPath("/api/v1/create")
                         .withMethod("post")
-                        .withBody(bodyJsonString)
+                        .withBody(reqBodyJsonString)
                         .withContentType(org.mockserver.model.MediaType.APPLICATION_JSON)
                 )
-                .respond(response().withBody(bodyJsonResponseString)
-                        .withHeader("Content-type", "application/json").withHeader("charset", "utf-8")
+                .respond(response()
+                        .withBody(respBodyJsonString)
+                        .withHeader("Content-type", "application/json")
+                        .withHeader("charset", "utf-8").withDelay(Delay.delay(TimeUnit.SECONDS, 1))
+
                 );
     }
 }

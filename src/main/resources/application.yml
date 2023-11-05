@@ -6,3 +6,7 @@ body:
   service:
     port: 8089
     host: localhost
+wheel:
+  service:
+    port: 8090
+    host: localhost

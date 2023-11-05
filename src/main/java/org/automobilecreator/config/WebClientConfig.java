@@ -24,6 +24,12 @@ public class WebClientConfig {
     @Value("${body.service.host}")
     private String bodyServiceHost;
 
+    @Value("${wheel.service.port}")
+    private String wheelServicePort;
+
+    @Value("${wheel.service.host}")
+    private String wheelServiceHost;
+
     Logger log = LoggerFactory.getLogger(WebClientConfig.class);
 
     @Bean
@@ -38,6 +44,15 @@ public class WebClientConfig {
     @Bean
     public WebClient bodyClient(WebClient.Builder webClientBuilder){
         return webClientBuilder.baseUrl("http://" + bodyServiceHost + ":" + bodyServicePort)
+                .filters(exchangeFilterFunctions -> {
+                    exchangeFilterFunctions.add(logRequest());
+                })
+                .build();
+    }
+
+    @Bean
+    public WebClient wheelClient(WebClient.Builder webClientBuilder){
+        return webClientBuilder.baseUrl("http://" + wheelServiceHost + ":" + wheelServicePort)
                 .filters(exchangeFilterFunctions -> {
                     exchangeFilterFunctions.add(logRequest());
                 })
