@@ -31,8 +31,6 @@ public class MyController {
     private final WebClient wheelClient;
     @PostMapping("/build")
     public Mono<CreationResult> build(@RequestBody Parts parts) {
-        //TODO: реализовать походы за всеми колесами сразу
-        //TODO: + ходить в другой сервис за колесами (Part)
         CarEngine engine = parts.engine();
         Assert.notNull(engine, "Двигатель null!!!");
 
