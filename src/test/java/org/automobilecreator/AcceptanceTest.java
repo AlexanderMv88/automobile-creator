@@ -23,6 +23,7 @@ import org.testcontainers.shaded.com.fasterxml.jackson.core.JsonProcessingExcept
 import org.testcontainers.utility.DockerImageName;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -94,11 +95,15 @@ public class AcceptanceTest {
             //Подготовка мока сервиса колеса
             Integer d = 20;
             CarWheel wheel = new CarWheel(d);
+            List<CarWheel> wheelList = List.of(wheel, wheel, wheel, wheel);
+            CarWheels wheels = new CarWheels(wheelList);
+
             CarWheelInfo wheelInfo = new CarWheelInfo(wheel, 100);
             MockServerClient mockWheelServerClient = new MockServerClient(mockWheelService.getHost(), mockWheelService.getServerPort());
             prepareWheelMockServer(mockWheelServerClient, wheel, wheelInfo);
+            List<CarWheelInfo> expectedWheelsInfo = List.of(wheelInfo, wheelInfo, wheelInfo, wheelInfo);
 
-            Parts parts = new Parts(engine, body, wheel);
+            Parts parts = new Parts(engine, body, wheels);
 
             //when
             CreationResult responseBody = webClient.post()
@@ -112,7 +117,7 @@ public class AcceptanceTest {
                     .returnResult()
                     .getResponseBody();
 
-            assertThat(responseBody).isEqualTo(new CreationResult(engineInfo, bodyInfo, wheelInfo));
+            assertThat(responseBody).isEqualTo(new CreationResult(engineInfo, bodyInfo, expectedWheelsInfo));
 
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -158,7 +163,8 @@ public class AcceptanceTest {
                 .respond(response()
                         .withBody(respBodyJsonString)
                         .withHeader("Content-type", "application/json")
-                        .withHeader("charset", "utf-8").withDelay(Delay.delay(TimeUnit.SECONDS, 1))
+                        .withHeader("charset", "utf-8")
+                        .withDelay(Delay.delay(TimeUnit.SECONDS, 1))
 
                 );
     }

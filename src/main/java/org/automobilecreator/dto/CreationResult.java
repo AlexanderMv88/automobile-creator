@@ -1,4 +1,6 @@
 package org.automobilecreator.dto;
 
-public record CreationResult(CarEngineInfo engineInfo, CarBodyInfo carBodyInfo, CarWheelInfo carWheelInfo) {
+import java.util.List;
+
+public record CreationResult(CarEngineInfo engineInfo, CarBodyInfo carBodyInfo, List<CarWheelInfo> carWheelsInfo) {
 }

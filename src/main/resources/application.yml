@@ -10,3 +10,10 @@ wheel:
   service:
     port: 8090
     host: localhost
+logging:
+  level:
+    org.org.automobilecreator: DEBUG
+    reactor:
+      netty:
+        http:
+          client: DEBUG

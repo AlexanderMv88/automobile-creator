@@ -1,5 +1,6 @@
 package org.automobilecreator.controller;
 
+import org.automobilecreator.CarWheels;
 import org.automobilecreator.dto.*;
 import org.springframework.http.MediaType;
 import org.springframework.util.Assert;
@@ -8,11 +9,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple3;
 
-import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -53,19 +55,25 @@ public class MyController {
                 .bodyToMono(CarBodyInfo.class)
                 .timeout(Duration.ofMillis(2000));
 
-        CarWheel wheel = parts.wheel();
+        CarWheels carWheels = parts.wheels();
+
+        Flux<CarWheelInfo> carWheelInfoFlux = Flux.fromIterable(carWheels.wheels()).flatMap(this::getCarWheelInfoMono);
+
+        Mono<Tuple3<CarEngineInfo, CarBodyInfo, List<CarWheelInfo>>> zip = Mono.zip(carEngineInfoMono, carBodyInfoMono, carWheelInfoFlux.collectList());
+        Mono<CreationResult> creationResultMono = zip.map(it -> new CreationResult(it.getT1(), it.getT2(), it.getT3()));
+        return creationResultMono;
+    }
+
+    private Mono<CarWheelInfo> getCarWheelInfoMono(CarWheel wheel) {
         Assert.notNull(wheel, "Колесо null!!!");
-        Mono<CarWheelInfo> carWheelInfoMono = wheelClient.post()
+        Mono<CarWheelInfo> carWheelsInfoMono = wheelClient.post()
                 .uri("/api/v1/create")
                 .body(Mono.just(wheel), CarWheel.class)
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(CarWheelInfo.class)
                 .timeout(Duration.ofMillis(2000));
-
-        Mono<Tuple3<CarEngineInfo, CarBodyInfo, CarWheelInfo>> zip = Mono.zip(carEngineInfoMono, carBodyInfoMono, carWheelInfoMono);
-        Mono<CreationResult> creationResultMono = zip.map(it -> new CreationResult(it.getT1(), it.getT2(), it.getT3()));
-        return creationResultMono;
+        return carWheelsInfoMono;
     }
 
 }
