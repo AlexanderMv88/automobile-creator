@@ -1,37 +1,33 @@
 package org.automobilecreator.controller;
 
-import org.automobilecreator.CarBodyService;
-import org.automobilecreator.CarEngineService;
-import org.automobilecreator.CarWheels;
-import org.automobilecreator.WheelService;
+import org.automobilecreator.service.CarBodyService;
+import org.automobilecreator.service.CarEngineService;
+import org.automobilecreator.dto.CarWheels;
+import org.automobilecreator.service.CarWheelService;
 import org.automobilecreator.dto.*;
-import org.springframework.http.MediaType;
-import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple3;
 
-import java.time.Duration;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1")
 public class MyController {
 
-    public MyController(CarEngineService carEngineService, CarBodyService carBodyService, WheelService wheelService) {
+    public MyController(CarEngineService carEngineService, CarBodyService carBodyService, CarWheelService carWheelService) {
         this.carEngineService = carEngineService;
         this.carBodyService = carBodyService;
-        this.wheelService = wheelService;
+        this.carWheelService = carWheelService;
     }
 
     private final CarEngineService carEngineService;
     private final CarBodyService carBodyService;
-    private final WheelService wheelService;
+    private final CarWheelService carWheelService;
 
     @PostMapping("/build")
     public Mono<CreationResult> build(@RequestBody Parts parts) {
@@ -41,7 +37,7 @@ public class MyController {
         Mono<CarBodyInfo> carBodyInfoMono = carBodyService.getCarBodyInfoMono(parts.body());
 
         CarWheels carWheels = parts.wheels();
-        Flux<CarWheelInfo> carWheelInfoFlux = Flux.fromIterable(carWheels.wheels()).flatMap(wheelService::getCarWheelInfoMono);
+        Flux<CarWheelInfo> carWheelInfoFlux = Flux.fromIterable(carWheels.wheels()).flatMap(carWheelService::getCarWheelInfoMono);
         Mono<Tuple3<CarEngineInfo, CarBodyInfo, List<CarWheelInfo>>> zip =
                 Mono.zip(carEngineInfoMono, carBodyInfoMono, carWheelInfoFlux.collectList());
 

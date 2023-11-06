@@ -1,4 +1,4 @@
-package org.automobilecreator;
+package org.automobilecreator.service;
 
 import org.automobilecreator.dto.CarWheel;
 import org.automobilecreator.dto.CarWheelInfo;
@@ -11,12 +11,12 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 
 @Service
-public class WheelService {
+public class CarWheelService {
 
 
     private final WebClient wheelClient;
 
-    public WheelService(WebClient wheelClient) {
+    public CarWheelService(WebClient wheelClient) {
         this.wheelClient = wheelClient;
     }
 

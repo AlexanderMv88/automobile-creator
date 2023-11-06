@@ -1,4 +1,4 @@
-package org.automobilecreator;
+package org.automobilecreator.dto;
 
 import org.automobilecreator.dto.CarWheel;
 

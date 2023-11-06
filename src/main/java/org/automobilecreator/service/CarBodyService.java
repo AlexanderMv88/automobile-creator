@@ -1,4 +1,4 @@
-package org.automobilecreator;
+package org.automobilecreator.service;
 
 import org.automobilecreator.dto.CarBody;
 import org.automobilecreator.dto.CarBodyInfo;
